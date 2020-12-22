@@ -7,7 +7,8 @@ import java.util.*;
 import java.util.zip.DeflaterOutputStream;
 
 public class Main {
-    static Map<String, String> map = new HashMap<String, String>();
+    static Map<String, String> globalMap = new HashMap<String, String>();
+    static Map<String, String> localMap = new HashMap<>();
     static Scanner in = new Scanner(System.in);
     static final int MAXE = 100;
     static Queue<String> thisList = new LinkedList<>();
@@ -16,6 +17,8 @@ public class Main {
     static final int listType = 1;
     static final int bracketsType = 2;
     static int thisType;
+    static int lastType;
+    static boolean localState;
     static Set<String> cmds = new HashSet<>();
 
     public static void main(String[] args) {
@@ -37,7 +40,9 @@ public class Main {
             return cmd.substring(1);
         }
         if (cmd.charAt(0) == ':') {
-            return map.get(cmd.substring(1));
+            if (localState && localMap != null && localMap.containsKey(cmd.substring(1)))
+                return localMap.get(cmd.substring(1));
+            return globalMap.get(cmd.substring(1));
         }
         if (cmd.charAt(0) == '[') {
             return ReadList(cmd);
@@ -105,7 +110,11 @@ public class Main {
                 res = If();
                 break;
             default:
-                res = cmd;
+                if (isFunctionName(cmd)) {
+                    res = RunFunction(cmd);
+                } else {
+                    res = cmd;
+                }
                 break;
         }
         return res;
@@ -130,18 +139,35 @@ public class Main {
                 name.equals("mul") || name.equals("div") || name.equals("mod")) {
             return "ERROR";
         }
-        if (map.containsKey(name)) {
-            map.replace(name, value);
+        if (localState && localMap != null) {
+            if (localMap.containsKey(name)) {
+                localMap.replace(name, value);
+            } else {
+                localMap.put(name, value);
+            }
         } else {
-            map.put(name, value);
+            if (globalMap.containsKey(name)) {
+                globalMap.replace(name, value);
+            } else {
+                globalMap.put(name, value);
+            }
         }
+
         return value;
     }
 
     static String Thing() {
         String cmd = GetNextCmd();
         String name = Operate(cmd);
-        return map.get(name);
+        if (localState && localMap != null) {
+            if (localMap.containsKey(name)) {
+                return localMap.get(name);
+            } else {
+                return globalMap.get(name);
+            }
+
+        }
+        return globalMap.get(name);
     }
 
     static String Read() {
@@ -184,15 +210,21 @@ public class Main {
     static String Erase() {
         String cmd = GetNextCmd();
         String key = Operate(cmd);
-        String value = map.get(key);
-        map.remove(key);
+        String value;
+        if (localState && localMap != null) {
+            value = localMap.get(key);
+            localMap.remove(key);
+        } else {
+            value = globalMap.get(key);
+            globalMap.remove(key);
+        }
         return value;
     }
 
     static String IsName() {
         String cmd = GetNextCmd();
         String key = Operate(cmd);
-        if (map.containsKey(key))
+        if (globalMap.containsKey(key) || localMap.containsKey(key))
             return "true";
         else
             return "false";
@@ -200,16 +232,17 @@ public class Main {
 
     static String Run(String value) {
         String res = "NULL";
-        boolean flag = true;
         Queue<String> queue = new LinkedList<>();
+        boolean flag = true;
         while (!thisList.isEmpty()) {
             queue.add(thisList.poll());
         }
+        lastType = thisType;
         if (thisType == scannerType) {
             flag = false;
             thisType = listType;
         }
-        String list[] = value.split(" ");
+        String list[] = value.split("\\s+");
         int l = list.length;
         list[0] = list[0].substring(1);
         int len = list[l - 1].length();
@@ -219,7 +252,25 @@ public class Main {
         }
         while (!thisList.isEmpty()) {
             String cmdL = thisList.poll();
-            res = Operate(cmdL);
+            if (cmdL.equals(""))
+                continue;
+            if (cmdL.equals("return")) {
+                String cmdR = GetNextCmd();
+                res = Operate(cmdR);
+                while (!queue.isEmpty()) {
+                    thisList.add(queue.poll());
+                }
+                thisType = lastType;
+                return res;
+            } else if (cmdL.equals("export")) {
+                String cmdE = GetNextCmd();
+                res = Operate(cmdE);
+                String valueE = localMap.get(res);
+                globalMap.put(res, valueE);
+            }else {
+                res = Operate(cmdL);
+            }
+
         }
         while (!queue.isEmpty()) {
             thisList.add(queue.poll());
@@ -358,7 +409,7 @@ public class Main {
                 String num = "";
                 if (op.charAt(0) == '(') {  //内嵌括号
                     int tmpType = thisType;
-                    while (!thisBrackets.isEmpty()){
+                    while (!thisBrackets.isEmpty()) {
                         tmpBracketsList.add(thisBrackets.poll());
                     }
                     while (!ops.isEmpty()) {
@@ -369,15 +420,20 @@ public class Main {
                     while (!thisBrackets.isEmpty()) {
                         ops.add(thisBrackets.poll());
                     }
-                    while (!tmpBracketsList.isEmpty()){
+                    while (!tmpBracketsList.isEmpty()) {
                         thisBrackets.add(tmpBracketsList.poll());
                     }
                     thisType = tmpType;
-                } else if (op.charAt(0) == ':') {   //是变量
-                    num = map.get(op.substring(1));
-                } else if (CheckCmd(op)) {   // 是mua操作
+                } else if (op.charAt(0) == ':') {//是变量
+                    if (localState && localMap != null && localMap.containsKey(op.substring(1))) {
+                        num = localMap.get(op.substring(1));
+                    } else {
+                        num = globalMap.get(op.substring(1));
+                    }
+
+                } else if (CheckCmd(op) || isFunctionName(op)) {   // 是mua操作
                     int tmpType = thisType;
-                    while (!thisBrackets.isEmpty()){
+                    while (!thisBrackets.isEmpty()) {
                         tmpBracketsList.add(thisBrackets.poll());
                     }
                     while (!ops.isEmpty()) {
@@ -388,7 +444,7 @@ public class Main {
                     while (!thisBrackets.isEmpty()) {
                         ops.add(thisBrackets.poll());
                     }
-                    while (!tmpBracketsList.isEmpty()){
+                    while (!tmpBracketsList.isEmpty()) {
                         thisBrackets.add(tmpBracketsList.poll());
                     }
                     thisType = tmpType;
@@ -551,10 +607,90 @@ public class Main {
         String list1 = Operate(cmd1);
         String cmd2 = GetNextCmd();
         String list2 = Operate(cmd2);
-        if (Boolean.getBoolean(boolOp))
+        if (Boolean.valueOf(boolOp))
             return Run(list1);
         else return Run(list2);
 
+    }
+
+    static String RunFunction(String cmd) {
+        String res = "";
+        String list;
+        if (localState && localMap != null) {
+            if (localMap.containsKey(cmd))
+                list = localMap.get(cmd);
+            else
+                list = globalMap.get(cmd);
+        } else {
+            list = globalMap.get(cmd);
+        }
+
+        int paramIndexS, paramIndexE, funcIndexS, funcIndexE;
+        int cntS = 0, cnt = 0;
+        int i = 0, l = list.length();
+        while (cntS < 2) {
+            char ch = list.charAt(i++);
+            if (ch == '[')
+                cntS++;
+        }
+        cntS = 0;
+        paramIndexS = i - 1;
+        cnt++;
+        while (cnt > 0) {
+            char ch = list.charAt(i++);
+            if (ch == '[')
+                cnt++;
+            if (ch == ']')
+                cnt--;
+        }
+        paramIndexE = i - 1;
+        while (cntS < 1) {
+            char ch = list.charAt(i++);
+            if (ch == '[')
+                cntS++;
+        }
+        funcIndexS = i - 1;
+        cnt = 1;
+        while (cnt > 0) {
+            char ch = list.charAt(i++);
+            if (ch == '[')
+                cnt++;
+            if (ch == ']')
+                cnt--;
+        }
+        funcIndexE = i - 1;
+        String paramStr = list.substring(paramIndexS, paramIndexE + 1),
+                funcStr = list.substring(funcIndexS, funcIndexE + 1);
+
+        paramStr = paramStr.substring(1, paramStr.length() - 1);
+        String[] params = paramStr.split("\\s+");
+        Map<String, String> tmpMap = new HashMap<>();
+        for (String str : params) {
+            if (str.equals("")) continue;
+            String realParamCmd = GetNextCmd();
+            String realParam = Operate(realParamCmd);
+            tmpMap.put(str, realParam);
+        }
+        localState = true;
+        HashMap<String, String> storeMap = new HashMap<>();
+        for (String key : localMap.keySet()) {
+            storeMap.put(key, localMap.get(key));
+        }
+        localMap.clear();
+        for (String key : tmpMap.keySet()) {
+            localMap.put(key, tmpMap.get(key));
+        }
+        res = Run(funcStr);
+        for (String key : storeMap.keySet()) {
+            localMap.put(key, storeMap.get(key));
+        }
+        storeMap.clear();
+        localState = false;
+        return res;
+    }
+
+    static String functionInner() {
+        return null;
     }
 
     static boolean CheckNumber(String value) {
@@ -615,6 +751,14 @@ public class Main {
         if (t2 > t1)
             return false;
         return true;
+    }
+
+    // 不完整，还需要区分list和function
+    static boolean isFunctionName(String cmd) {
+        if (localMap != null && localMap.containsKey(cmd) || globalMap.containsKey(cmd)) {
+            return true;
+        }
+        return false;
     }
 
     static void InitCmds() {
