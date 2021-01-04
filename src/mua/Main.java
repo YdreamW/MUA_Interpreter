@@ -1,10 +1,5 @@
 package mua;
-
-import javax.swing.*;
-import java.awt.*;
-import java.time.chrono.IsoEra;
 import java.util.*;
-import java.util.zip.DeflaterOutputStream;
 
 public class Main {
     static Map<String, String> globalMap = new HashMap<String, String>();
@@ -27,7 +22,12 @@ public class Main {
         in.hasNext();
         String cmd = in.next();
         while (true) {
-            Operate(cmd);
+            try {
+                Operate(cmd);
+            }catch (Exception e)
+            {
+
+            }
             if (in.hasNext())
                 cmd = in.next();
             else break;
@@ -241,6 +241,9 @@ public class Main {
         if (thisType == scannerType) {
             flag = false;
             thisType = listType;
+        }else if(thisType == bracketsType){
+            flag = false;
+            thisType = listType;
         }
         String list[] = value.split("\\s+");
         int l = list.length;
@@ -424,7 +427,7 @@ public class Main {
                         thisBrackets.add(tmpBracketsList.poll());
                     }
                     thisType = tmpType;
-                } else if (op.charAt(0) == ':') {//是变量
+                } else if (op.charAt(0) == ':') {
                     if (localState && localMap != null && localMap.containsKey(op.substring(1))) {
                         num = localMap.get(op.substring(1));
                     } else {
@@ -448,7 +451,7 @@ public class Main {
                         thisBrackets.add(tmpBracketsList.poll());
                     }
                     thisType = tmpType;
-                } else {    //是数字
+                } else {
                     num = op;
                 }
                 double thisNum = Double.valueOf(num);
@@ -614,8 +617,8 @@ public class Main {
     }
 
     static String RunFunction(String cmd) {
-        String res = "";
-        String list;
+        String res = "NULL";
+        String list = "";
         if (localState && localMap != null) {
             if (localMap.containsKey(cmd))
                 list = localMap.get(cmd);
@@ -671,7 +674,12 @@ public class Main {
             String realParam = Operate(realParamCmd);
             tmpMap.put(str, realParam);
         }
-        localState = true;
+        boolean flag = true;
+        if(!localState)
+        {
+            localState = true;
+            flag = false;
+        }
         HashMap<String, String> storeMap = new HashMap<>();
         for (String key : localMap.keySet()) {
             storeMap.put(key, localMap.get(key));
@@ -685,7 +693,10 @@ public class Main {
             localMap.put(key, storeMap.get(key));
         }
         storeMap.clear();
-        localState = false;
+        if(!flag)
+        {
+            localState = false;
+        }
         return res;
     }
 
