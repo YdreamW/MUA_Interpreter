@@ -106,8 +106,8 @@ public class Test {
                 }
             }
         } catch (Throwable e) {
-//            resultout.println(e.getClass());
-            e.printStackTrace(resultout);
+            resultout.println(e.getClass());            
+            // e.printStackTrace(resultout);
         }
         resultout.println(mark);
         resultout.close();

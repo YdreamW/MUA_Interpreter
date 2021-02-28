@@ -1,65 +1,97 @@
-make "a 3
-make "a (:a+4)
-make "f [
-	[a]
-	[return (:a*:a+1)]
+print sentence [a] "bc
+print sentence [a [a bd]] [c]
+print sentence "a "be
+print list "ab [b]
+print list [aa] [b]
+print list [ab] "b
+print join [ac] "b
+print join [ad] [b]
+print join [ak [b]] [c]
+print first [ae b c]
+print first [[af] b c]
+print first [[aa b] b c]
+print first [[ae [b]] c]
+print first "habc
+print first 3123
+print first true
+print islist butfirst [a b]
+print butfirst [a [aa b]]
+print butfirst [a [fa b] c]
+print butfirst [a b g c]
+print butfirst [a [a b] [c] k]
+print butfirst "abcdd
+print butlast [aa [b c]]
+print butlast [as b c]
+print butlast [ad b [c d] e]
+make "length
+[
+	[x]
+	[
+		if isempty :x
+			[return 0]
+			[return add length butfirst :x 1]
+	]
 ]
-print f 3
+print length [1 [2 3] 4 5]
+print join [] [2 3 5]
+make "reverse [
+    [x]
+    [
+        if isempty :x
+            [return :x]
+            [
+                if islist :x
+                    [return join reverse butfirst :x first :x]
+                    [return word reverse butfirst :x first :x]
+            ]
+    ]
+]
+print reverse [1 2 3 4]
+print reverse [1 [2 3 3] 4 5]
+make "find [
+    [lst x]
+    [
+        if isempty :lst
+            [return false]
+            [
+                if eq first :lst :x
+                    [return true]
+                    [return find butfirst :lst :x]
+            ]
+    ]
+]
+print find [1 2 3] 3
+print find [1 2 3] 5
+print find [1 [2 3] 4] 2
+make "index [
+    [lst x]
+    [
+        if isempty :lst
+            [return -1]
+            [
+                if eq first :lst :x
+                    [return 0]
+                    [
+                        make "i index butfirst :lst :x
+                        if eq :i -1
+                            [return -1]
+                            [return add :i 1]
+                    ]
+            ]
+    ]
+]
+print index [1 2 3] 1
+print index [1 [2 3] 4] 2
 make "f
 [
 	[]
 	[print "a]
 ]
-f
-make "n 5
-make "f [
-	[n]
-	[
-		if lt :n 2
-			[return 1]
-			[return mul :n f sub :n 1]
-	]
-]
-print f :n
-print :n
-make "let [
-	[__a __b]
-	[
-		make :__a :__b
-		export :__a
-	]
-]
-let "a 6
-print :a
-make "a 1
-make "repeat [
-    [n s]
-    [
-		if eq :n 0 
-			[] 
-			[run :s repeat sub :n 1 :s]
-	]
-]
-repeat 4 [make "a (:a+1)]
-print :a
-make "n 5
-make "factorial [
-	[n]
-	[
-		if lt :n 2
-			[return 1]
-			[return (:n * factorial (:n-1))]
-	]
-]
-print factorial :n
-print :n
-make "gcd [
-    [a b]
-    [
-        if eq :b 0
-            [return :a]
-            [return gcd :b (:a % :b)]
-    ]
-]
-print gcd 18 14
-print gcd 18 13
+print "bbbb
+save "a.mua
+erall
+print isname "f
+print isname "run
+load "a.mua
+print isname "f
+load "b.mua

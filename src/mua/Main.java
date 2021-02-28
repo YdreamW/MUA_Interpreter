@@ -1,4 +1,6 @@
 package mua;
+
+import java.io.*;
 import java.util.*;
 
 public class Main {
@@ -8,9 +10,11 @@ public class Main {
     static final int MAXE = 100;
     static Queue<String> thisList = new LinkedList<>();
     static Queue<String> thisBrackets = new LinkedList<>();
+    static Queue<String> thisFile = new LinkedList<>();
     static final int scannerType = 0;
     static final int listType = 1;
     static final int bracketsType = 2;
+    static final int fileType = 3;
     static int thisType;
     static int lastType;
     static boolean localState;
@@ -24,8 +28,7 @@ public class Main {
         while (true) {
             try {
                 Operate(cmd);
-            }catch (Exception e)
-            {
+            } catch (Exception e) {
 
             }
             if (in.hasNext())
@@ -109,6 +112,39 @@ public class Main {
             case "if":
                 res = If();
                 break;
+            case "sentence":
+                res = Sentence();
+                break;
+            case "list":
+                res = List();
+                break;
+            case "join":
+                res = Join();
+                break;
+            case "word":
+                res = Word();
+                break;
+            case "first":
+                res = First();
+                break;
+            case "last":
+                res = Last();
+                break;
+            case "butfirst":
+                res = Butfirst();
+                break;
+            case "butlast":
+                res = Butlast();
+                break;
+            case "erall":
+                res = Erall();
+                break;
+            case "save":
+                res = Save();
+                break;
+            case "load":
+                res = Load();
+                break;
             default:
                 if (isFunctionName(cmd)) {
                     res = RunFunction(cmd);
@@ -123,7 +159,10 @@ public class Main {
     static String Print() {
         String cmd = GetNextCmd();
         String res = Operate(cmd);
-        System.out.println(res);
+        if (CheckList(res)) {
+            System.out.println(res.substring(1, res.length() - 1));
+        } else
+            System.out.println(res);
         return res;
     }
 
@@ -241,7 +280,7 @@ public class Main {
         if (thisType == scannerType) {
             flag = false;
             thisType = listType;
-        }else if(thisType == bracketsType){
+        } else if (thisType == bracketsType) {
             flag = false;
             thisType = listType;
         }
@@ -270,7 +309,7 @@ public class Main {
                 res = Operate(cmdE);
                 String valueE = localMap.get(res);
                 globalMap.put(res, valueE);
-            }else {
+            } else {
                 res = Operate(cmdL);
             }
 
@@ -502,6 +541,9 @@ public class Main {
             case bracketsType:
                 res = thisBrackets.poll();
                 break;
+            case fileType:
+                res = thisFile.poll();
+                break;
         }
         return res;
     }
@@ -572,7 +614,8 @@ public class Main {
         if (CheckList(value)) {
             if (value.charAt(1) == ']')
                 res = "true";
-            res = "false";
+            else
+                res = "false";
         } else {
             res = value.equals("") ? "true" : "false";
         }
@@ -675,8 +718,7 @@ public class Main {
             tmpMap.put(str, realParam);
         }
         boolean flag = true;
-        if(!localState)
-        {
+        if (!localState) {
             localState = true;
             flag = false;
         }
@@ -693,15 +735,233 @@ public class Main {
             localMap.put(key, storeMap.get(key));
         }
         storeMap.clear();
-        if(!flag)
-        {
+        if (!flag) {
             localState = false;
         }
         return res;
     }
 
-    static String functionInner() {
-        return null;
+    static String Sentence() {
+        String cmd1, cmd2;
+        String value1, value2;
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        cmd2 = GetNextCmd();
+        value2 = Operate(cmd2);
+        if (CheckList(value1)) {
+            value1 = value1.substring(1, value1.length() - 1);
+        }
+        if (CheckList(value2)) {
+            value2 = value2.substring(1, value2.length() - 1);
+        }
+        String res = "[" + value1 + " " + value2 + "]";
+        return res;
+    }
+
+    static String List() {
+        String cmd1, cmd2;
+        String value1, value2;
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        cmd2 = GetNextCmd();
+        value2 = Operate(cmd2);
+        String res = "[" + value1 + " " + value2 + "]";
+        return res;
+    }
+
+    static String Join() {
+        String cmd1, cmd2;
+        String value1, value2;
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        cmd2 = GetNextCmd();
+        value2 = Operate(cmd2);
+        String res;
+        if (value1.charAt(1) == ']')
+            res = "[" + value2 + "]";
+        else
+            res = value1.substring(0, value1.length() - 1) + " " + value2 + "]";
+        return res;
+    }
+
+    static String First() {
+        String cmd1, value1, res = "NULL";
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        if (CheckList(value1)) {
+            int index = -1;
+            int cnt = 0;
+            for (int i = 0; i < value1.length(); i++) {
+                char ch = value1.charAt(i);
+                if (ch == '[')
+                    cnt++;
+                if (ch == ']')
+                    cnt--;
+                if (ch == ' ' && cnt == 1) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1)
+                res = value1.substring(1, value1.length() - 1);
+            else
+                res = value1.substring(1, index);
+        } else {
+            res = "" + value1.charAt(0);
+        }
+        return res;
+    }
+
+    static String Last() {
+        String cmd1, value1, res = "NULL";
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        if (CheckList(value1)) {
+            int index = -1;
+            int cnt = 0;
+            for (int i = value1.length() - 1; i >= 0; i--) {
+                char ch = value1.charAt(i);
+                if (ch == ']')
+                    cnt++;
+                if (ch == '[')
+                    cnt--;
+                if (ch == ' ' && cnt == 1) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1)
+                res = value1.substring(1, value1.length() - 1);
+            else
+                res = value1.substring(index + 1, value1.length() - 1);
+        } else {
+            res = "" + value1.charAt(value1.length() - 1);
+        }
+        return res;
+    }
+
+    static String Word() {
+        String cmd1, cmd2;
+        String value1, value2;
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        cmd2 = GetNextCmd();
+        value2 = Operate(cmd2);
+        return value1 + value2;
+    }
+
+    static String Butfirst() {
+        String cmd1, value1, res = "NULL";
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        if (CheckList(value1)) {
+            int index = -1;
+            int cnt = 0;
+            for (int i = 0; i < value1.length(); i++) {
+                char ch = value1.charAt(i);
+                if (ch == '[')
+                    cnt++;
+                if (ch == ']')
+                    cnt--;
+                if (ch == ' ' && cnt == 1) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1)
+                res = "[]";
+            else
+                res = "[" + value1.substring(index + 1);
+        } else {
+            res = value1.substring(1);
+        }
+        return res;
+    }
+
+    static String Butlast() {
+        String cmd1, value1, res = "NULL";
+        cmd1 = GetNextCmd();
+        value1 = Operate(cmd1);
+        if (CheckList(value1)) {
+            int index = -1;
+            int cnt = 0;
+            for (int i = value1.length() - 1; i >= 0; i--) {
+                char ch = value1.charAt(i);
+                if (ch == ']')
+                    cnt++;
+                if (ch == '[')
+                    cnt--;
+                if (ch == ' ' && cnt == 1) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1)
+                res = "[]";
+            else
+                res = value1.substring(0, index) + "]";
+        } else {
+            res = value1.substring(0, value1.length() - 1);
+        }
+        return res;
+    }
+
+    static String Erall(){
+        globalMap.clear();
+        return "true";
+    }
+
+    static String Save(){
+        String cmd = GetNextCmd();
+        String value = Operate(cmd);
+        try
+        {
+            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(value)));
+            for(String i:globalMap.keySet()){
+                String v = globalMap.get(i);
+                out.write("make \""+i+" "+v);
+                out.newLine();
+            }
+            out.flush();
+            out.close();
+        }catch (Exception e)
+        {
+            System.out.println(e);
+        }
+        return "true";
+    }
+
+    static String Load(){
+        String cmd = GetNextCmd();
+        String value = Operate(cmd);
+        Queue<String> list = new LinkedList<>();
+        try
+        {
+            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(value)));
+            String s = in.readLine();
+            while (s!=null)
+            {
+                for(String i:s.split("\\s+"))
+                    list.add(i);
+                s = in.readLine();
+            }
+            int type = thisType;
+            thisType = fileType;
+            while (!list.isEmpty())
+            {
+                thisFile.add(list.poll());
+            }
+            while (!thisFile.isEmpty())
+            {
+                String cmd1 = GetNextCmd();
+                Operate(cmd1);
+            }
+            thisType = type;
+        }catch (Exception e)
+        {
+            System.out.println(e);
+        }
+        return "true";
     }
 
     static boolean CheckNumber(String value) {
